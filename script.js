@@ -1,63 +1,86 @@
-// 用于存储当前选择的数据存储方式，默认为本地存储（'localStorage'），也可切换为'indexedDB'或'firebase'
-let dataStorageMethod = 'localStorage';
+// GitHub 相关配置，你需要将下面的内容替换为你自己的 GitHub 仓库信息以及获取到的个人访问令牌（Personal Access Token）
+const GITHUB_USERNAME = "XioahuW";
+const GITHUB_REPO_NAME = "fanoagwsforum";
+const GITHUB_ACCESS_TOKEN = "YOUR_PERSONAL_ACCESS_TOKEN";
+const GITHUB_API_BASE_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO_NAME}/contents/`;
 
-// 初始化Firebase配置（需替换为你自己的真实配置信息）
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
-// 页面加载时执行的函数，用于初始化页面，比如加载已有的帖子数据
+// 页面加载时初始化，获取并展示帖子列表
 window.addEventListener('load', function () {
     displayPosts();
 });
 
-// 根据选择的数据存储方式获取帖子数据
-function getPosts() {
-    if (dataStorageMethod === 'localStorage') {
-        return JSON.parse(localStorage.getItem('posts')) || [];
-    } else if (dataStorageMethod === 'indexedDB') {
-        return readFromIndexedDB();
-    } else if (dataStorageMethod === 'firebase') {
-        return readFromFirebase();
+// 获取帖子数据的函数，通过 GitHub API 从指定仓库的文件中读取内容（这里简单将帖子数据存为文件内容）
+async function getPosts() {
+    try {
+        const response = await fetch(GITHUB_API_BASE_URL, {
+            headers: {
+                'Authorization': `token ${GITHUB_ACCESS_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        const data = await response.json();
+        const posts = [];
+        for (const file of data) {
+            const fileResponse = await fetch(file.download_url, {
+                headers: {
+                    'Authorization': `token ${GITHUB_ACCESS_TOKEN}`
+                }
+            });
+            const postContent = await fileResponse.text();
+            const post = JSON.parse(postContent);
+            posts.push(post);
+        }
+        return posts;
+    } catch (error) {
+        console.error("获取帖子数据出错：", error);
+        return [];
     }
 }
 
-// 根据选择的数据存储方式存储新帖子数据
-function savePosts(posts) {
-    if (dataStorageMethod === 'localStorage') {
-        localStorage.setItem('posts', JSON.stringify(posts));
-    } else if (dataStorageMethod === 'indexedDB') {
-        writeToIndexedDB(posts);
-    } else if (dataStorageMethod === 'firebase') {
-        writeToFirebase(posts);
+// 保存帖子数据到 GitHub 仓库的函数，将新帖子数据以文件形式保存到仓库
+async function savePosts(posts) {
+    try {
+        for (const post of posts) {
+            const fileName = `${Date.now()}-${post.title}.json`; // 以时间戳和标题命名文件
+            const postContent = JSON.stringify(post);
+            const response = await fetch(GITHUB_API_BASE_URL + fileName, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${GITHUB_ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: "添加新帖子",
+                    content: btoa(postContent) // 将内容进行 base64 编码，符合 GitHub API 要求
+                })
+            });
+            if (!response.ok) {
+                console.error("保存帖子数据出错：", response.statusText);
+            }
+        }
+    } catch (error) {
+        console.error("保存帖子数据出错：", error);
     }
 }
 
-// 向页面展示帖子列表
+// 展示帖子列表到页面的函数
 function displayPosts() {
     const postItems = document.getElementById('post-items');
     postItems.innerHTML = '';
-    const posts = getPosts();
-    posts.forEach(post => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <h3>${post.title}</h3>
-            <p>${post.content}</p>
-            <span>作者：匿名</span>
-        `;
-        postItems.appendChild(li);
+    getPosts().then(posts => {
+        posts.forEach(post => {
+            const li = document.createElement('li');
+            li.classList.add('post-item');
+            li.innerHTML = `
+                <h3>${post.title}</h3>
+                <p>${post.content}</p>
+            `;
+            postItems.appendChild(li);
+        });
     });
 }
 
-// 处理表单提交事件
+// 处理表单提交事件，添加新帖子
 document.getElementById('post-form').addEventListener('submit', function (event) {
     event.preventDefault();
     const title = document.getElementById('title').value;
@@ -66,94 +89,14 @@ document.getElementById('post-form').addEventListener('submit', function (event)
         alert('标题和内容不能为空，请填写完整后再提交。');
         return;
     }
-    const posts = getPosts();
-    posts.push({ title: title, content: content });
-    savePosts(posts);
-    // 清空表单输入框
-    document.getElementById('title').value = '';
-    document.getElementById('content').value = '';
-    displayPosts();
+    const posts = getPosts().then(existingPosts => {
+        existingPosts.push({ title: title, content: content });
+        return existingPosts;
+    });
+    posts.then(savedPosts => {
+        savePosts(savedPosts);
+        displayPosts();
+        document.getElementById('title').value = '';
+        document.getElementById('content').value = '';
+    });
 });
-
-// 使用本地存储相关操作
-
-// 从本地存储读取数据（前面已有部分调用，此处完整展示函数）
-function readFromLocalStorage() {
-    return JSON.parse(localStorage.getItem('posts')) || [];
-}
-
-// 使用IndexedDB相关操作
-
-// 打开IndexedDB数据库
-const indexedDBRequest = indexedDB.open('forumDB', 1);
-indexedDBRequest.onupgradeneeded = function (event) {
-    const db = event.target.result;
-    const objectStore = db.createObjectStore('posts', { keyPath: 'id', autoIncrement: true });
-};
-
-// 从IndexedDB读取数据
-function readFromIndexedDB() {
-    return new Promise((resolve, reject) => {
-        const posts = [];
-        const transaction = indexedDBRequest.result.transaction(['posts'], 'readonly');
-        const objectStore = transaction.objectStore('posts');
-        const cursorRequest = objectStore.openCursor();
-        cursorRequest.onsuccess = function (event) {
-            const cursor = event.target.result;
-            if (cursor) {
-                posts.push(cursor.value);
-                cursor.continue();
-            } else {
-                resolve(posts);
-            }
-        };
-        cursorRequest.onerror = function () {
-            reject('读取IndexedDB数据出错');
-        };
-    });
-}
-
-// 向IndexedDB写入数据
-function writeToIndexedDB(posts) {
-    return new Promise((resolve, reject) => {
-        const transaction = indexedDBRequest.result.transaction(['posts'], 'readwrite');
-        const objectStore = transaction.objectStore('posts');
-        posts.forEach(post => {
-            const request = objectStore.add(post);
-            request.onsuccess = function () {
-                console.log('向IndexedDB添加数据成功');
-            };
-            request.onerror = function () {
-                reject('向IndexedDB添加数据出错');
-            };
-        });
-        transaction.oncomplete = function () {
-            resolve();
-        };
-    });
-}
-
-// 使用Firebase相关操作
-
-// 从Firebase读取数据
-function readFromFirebase() {
-    return new Promise((resolve, reject) => {
-        const posts = [];
-        database.ref('posts').once('value', snapshot => {
-            snapshot.forEach(childSnapshot => {
-                posts.push(childSnapshot.val());
-            });
-            resolve(posts);
-        }).catch(error => {
-            reject(error);
-        });
-    });
-}
-
-// 向Firebase写入数据
-function writeToFirebase(posts) {
-    const newPostsRef = database.ref('posts');
-    posts.forEach(post => {
-        newPostsRef.push(post);
-    });
-}
