@@ -1,7 +1,7 @@
 // GitHub 相关配置，你需要将下面的内容替换为你自己的 GitHub 仓库信息以及获取到的个人访问令牌（Personal Access Token）
 const GITHUB_USERNAME = "XioahuW";
 const GITHUB_REPO_NAME = "fanoagwsforum";
-const GITHUB_ACCESS_TOKEN = "YOUR_PERSONAL_ACCESS_TOKEN";
+const GITHUB_ACCESS_TOKEN = "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";
 const GITHUB_API_BASE_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO_NAME}/contents/`;
 
 // 页面加载时初始化，获取并展示帖子列表
