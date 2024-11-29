@@ -3,28 +3,22 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>简单论坛</title>
-    <!-- 引入外部CSS样式文件，用于美化页面 -->
+    <title>GitHub 服务端论坛</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- 引入Firebase JavaScript SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-database.js"></script>
 </head>
 
 <body>
-    <!-- 导航栏 -->
     <nav>
         <ul>
             <li><a href="#">首页</a></li>
-            
+            <li><a href="#">分类</a></li>
+            <li><a href="#">关于</a></li>
         </ul>
     </nav>
-    <!-- 帖子列表区域 -->
     <div class="posts" id="posts-list">
         <h2>帖子列表</h2>
         <ul id="post-items"></ul>
     </div>
-    <!-- 发帖表单 -->
     <form class="post-form" id="post-form">
         <label for="title">标题：</label>
         <input type="text" id="title" placeholder="请输入帖子标题">
@@ -32,7 +26,6 @@
         <textarea id="content" placeholder="请输入帖子内容"></textarea>
         <input type="submit" value="发布">
     </form>
-    <!-- 引入JavaScript文件，包含数据处理等功能逻辑 -->
     <script src="script.js"></script>
 </body>
 
