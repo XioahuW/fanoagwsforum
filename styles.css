@@ -45,3 +45,17 @@ textarea {
     margin-bottom: 10px;
     width: 100%;
 }
+
+.post-item {
+    border-bottom: 1px solid #ddd;
+    padding: 10px;
+}
+
+.post-item h3 {
+    font-size: 18px;
+}
+
+.post-item p {
+    font-size: 14px;
+    color: #666;
+}
