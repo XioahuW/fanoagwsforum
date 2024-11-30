@@ -1,10 +1,10 @@
-// 模拟存储帖子数据的数组（实际应用中会使用数据库存储）
-let posts = [];
+// 从本地存储中读取帖子数据（如果有），没有则初始化为空数组
+let posts = JSON.parse(localStorage.getItem('forumPosts')) || [];
 
 // 函数用于渲染帖子列表
 function renderPostList() {
     const postListDiv = document.getElementById('post-list');
-    postListDiv.innerHTML = ''; // 先清空列表内容
+    postListDiv.innerHTML = '';
     posts.forEach((post, index) => {
         const postDiv = document.createElement('div');
         postDiv.classList.add('post');
@@ -45,6 +45,7 @@ function showReplyForm(postIndex) {
         e.preventDefault();
         const replyContent = document.getElementById('reply-content').value;
         posts[postIndex].replies.push(replyContent);
+        savePostsToLocalStorage(); // 新增，保存更新后的数据到本地存储
         renderPostList();
         replyForm.reset();
         replyForm.style.display = 'none';
@@ -62,9 +63,15 @@ document.getElementById('post-form').addEventListener('submit', function (e) {
         replies: []
     };
     posts.push(newPost);
+    savePostsToLocalStorage(); // 新增，保存新发布帖子后的数据到本地存储
     renderPostList();
     this.reset();
 });
+
+// 新增函数，将帖子数据保存到本地存储中
+function savePostsToLocalStorage() {
+    localStorage.setItem('forumPosts', JSON.stringify(posts));
+}
 
 // 初始渲染帖子列表
 renderPostList();
